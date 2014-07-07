@@ -4,6 +4,11 @@ local sceneRace = composer.newScene()
 
 local physics = require "physics"
 physics.start( )
+
+local physicsData = (require "circuit1_shape").physicsData(1.0)
+
+--physics.setDrawMode( "hybrid" )
+physics.setGravity( 0, 0 )
 -- -----------------------------------------------------------------------------------------------------------------
 -- All code outside of the listener functions will only be executed ONCE unless "composer.removeScene()" is called.
 -- -----------------------------------------------------------------------------------------------------------------
@@ -13,6 +18,7 @@ physics.start( )
 -- -------------------------------------------------------------------------------
 
 local car
+local circuit
 local runButton
 local cwButton
 local ccwButton
@@ -46,8 +52,10 @@ end
 local function moving( event )
 
     if car.accelerating == true then
-        car:setLinearVelocity( car.speed * math.cos(math.rad(car.rotation)), car.speed * math.sin(math.rad(car.rotation)) )
-        car.speed = car.speed + 10  
+        if car.speed < 150 then
+            car:setLinearVelocity( car.speed * math.cos(math.rad(car.rotation)), car.speed * math.sin(math.rad(car.rotation)) )
+            car.speed = car.speed + 10  
+        end
     else
         if car.speed > 0 then
             car.speed = car.speed - 10
@@ -56,9 +64,9 @@ local function moving( event )
     end
 
     if car.rotating == 1 then
-        car.rotation = (car.rotation - 1)%360
+        car.rotation = (car.rotation - 5)%360
     elseif car.rotating == 2 then
-        car.rotation = (car.rotation + 1)%360
+        car.rotation = (car.rotation + 5)%360
     end
 
     
@@ -67,30 +75,37 @@ end
 
 local function accelerate(event)
     if event.phase == "began" then
+        display.getCurrentStage():setFocus( event.target )
         car.accelerating = true
     end 
             
-    if event.phase == "ended" then 
+    if event.phase == "ended" or event.phase == "cancelled" then
+        display.getCurrentStage():setFocus( nil ) 
         car.accelerating = false
     end
+    return true
 end
 
 local function rotateCW(event)
     if event.phase == "began" then
+        display.getCurrentStage():setFocus( event.target )
         car.rotating = 1
     end 
             
-    if event.phase == "ended" then 
+    if event.phase == "ended" then
+        display.getCurrentStage():setFocus( nil ) 
         car.rotating = 0
     end
 end
 
 local function rotateCCW(event)
     if event.phase == "began" then
+        display.getCurrentStage():setFocus( event.target )
         car.rotating = 2
     end 
             
     if event.phase == "ended" then 
+        display.getCurrentStage():setFocus( nil )
         car.rotating = 0
     end
 end
@@ -98,16 +113,27 @@ end
 -- "scene:create()"
 function sceneRace:create( event )
 
-    car = display.newRect(0,0,40,20)
-    car.x = display.contentWidth * 0.5
-    car.y = display.contentHeight * 0.5
+    circuit = display.newImage( "assets/circuits/circuit1.jpg" )
+    circuit.x = display.contentWidth * 0.5
+    circuit.y = display.contentHeight * 0.5
+
+    physics.addBody( circuit, "static", physicsData:get("circuit1") )
+
+    car = display.newImage( "assets/cars/orange_car_small.png" )
+    car.x = display.contentWidth * 0.55
+    car.y = display.contentHeight * 0.58
+
+    physics.addBody( car, "dynamic", { density = 0.5 } )
+
     car.speed = 0
     car.accelerating = false
     car.rotating = 0
     car.orientation = 0
     car:setFillColor(255,255,255)
+    car.rotation = 0
+    car.isFixedRotation = true
 
-    physics.addBody( car, "kinematic" )
+    
 
     runButton = display.newRect(0,0,display.contentWidth *0.5, display.contentHeight)
     cwButton = display.newRect(0,0,display.contentWidth *0.5, display.contentHeight * 0.5)
@@ -123,13 +149,13 @@ function sceneRace:create( event )
 
     if DEBUG == true then
         runButton:setFillColor(255,0,0)
-        runButton.alpha = 0.2
+        runButton.alpha = 0
 
         cwButton:setFillColor( 0,255,0 )
-        cwButton.alpha = 0.2
+        cwButton.alpha = 0
 
         ccwButton:setFillColor( 0,0,255 )
-        ccwButton.alpha = 0.2
+        ccwButton.alpha = 0
     end
 
     runButton:addEventListener( "touch", accelerate )
